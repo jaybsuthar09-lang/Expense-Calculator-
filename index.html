@@ -14,13 +14,11 @@ body {
   color: white;
 }
 
-/* Container */
 .container {
   padding: 15px;
   padding-bottom: 100px;
 }
 
-/* Cards */
 .card {
   background: rgba(255,255,255,0.08);
   backdrop-filter: blur(15px);
@@ -29,7 +27,6 @@ body {
   margin: 10px 0;
 }
 
-/* Floating Button */
 .fab {
   position: fixed;
   bottom: 80px;
@@ -45,7 +42,6 @@ body {
   cursor: pointer;
 }
 
-/* Bottom Nav */
 .nav {
   position: fixed;
   bottom: 0;
@@ -56,7 +52,6 @@ body {
   padding: 10px;
 }
 
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
@@ -76,7 +71,6 @@ body {
   width: 90%;
 }
 
-/* Inputs */
 input, select {
   width: 100%;
   padding: 12px;
@@ -85,7 +79,6 @@ input, select {
   border: none;
 }
 
-/* Button */
 button {
   width: 100%;
   padding: 12px;
@@ -95,7 +88,6 @@ button {
   border-radius: 8px;
 }
 
-/* Expense */
 .expense {
   display: flex;
   justify-content: space-between;
@@ -105,7 +97,6 @@ button {
   border-radius: 8px;
 }
 
-/* Toast */
 .toast {
   position: fixed;
   bottom: 150px;
@@ -144,17 +135,14 @@ button {
 
 </div>
 
-<!-- Floating Button -->
 <div class="fab" onclick="openModal()">+</div>
 
-<!-- Bottom Nav -->
 <div class="nav">
   <div>🏠</div>
   <div>📊</div>
   <div>⚙️</div>
 </div>
 
-<!-- Modal -->
 <div class="modal" id="modal">
   <div class="modal-content">
     <input id="desc" placeholder="Description">
@@ -169,12 +157,19 @@ button {
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast" class="toast">Added!</div>
 
 <script>
 let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
 let budget = 5000;
+
+// ✅ Get elements properly
+const modal = document.getElementById("modal");
+const list = document.getElementById("list");
+const totalEl = document.getElementById("total");
+const warning = document.getElementById("warning");
+const tips = document.getElementById("tips");
+const pieCanvas = document.getElementById("pieChart");
 
 function openModal() {
   modal.style.display = "flex";
@@ -187,7 +182,7 @@ function addExpense() {
 
   if (!desc || !amount) return;
 
-  expenses.push({desc,amount,category});
+  expenses.push({desc, amount, category});
   localStorage.setItem("expenses", JSON.stringify(expenses));
 
   modal.style.display = "none";
@@ -199,7 +194,7 @@ function addExpense() {
 function showToast() {
   const t = document.getElementById("toast");
   t.style.display = "block";
-  setTimeout(()=>t.style.display="none",2000);
+  setTimeout(() => t.style.display = "none", 2000);
 }
 
 function render() {
@@ -208,9 +203,9 @@ function render() {
 
   list.innerHTML = "";
 
-  expenses.forEach((e,i)=>{
+  expenses.forEach((e) => {
     total += e.amount;
-    cat[e.category] = (cat[e.category]||0)+e.amount;
+    cat[e.category] = (cat[e.category] || 0) + e.amount;
 
     list.innerHTML += `
       <div class="expense">
@@ -219,11 +214,8 @@ function render() {
     `;
   });
 
-  totalEl.innerText = "₹"+total;
-
-  if(total > budget) warning.innerText = "Over budget!";
-  else warning.innerText = "";
-
+  totalEl.innerText = "Total: ₹" + total;
+  warning.innerText = total > budget ? "⚠️ Over budget!" : "";
   tips.innerText = total > 3000 ? "Try to save more" : "Good job";
 
   drawChart(cat);
@@ -232,9 +224,15 @@ function render() {
 let chart;
 function drawChart(cat){
   if(chart) chart.destroy();
-  chart = new Chart(pieChart,{
-    type:'pie',
-    data:{labels:Object.keys(cat),datasets:[{data:Object.values(cat)}]}
+
+  chart = new Chart(pieCanvas, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(cat),
+      datasets: [{
+        data: Object.values(cat)
+      }]
+    }
   });
 }
 
