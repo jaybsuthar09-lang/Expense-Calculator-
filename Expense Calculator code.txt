@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultimate Student Expense Tracker</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #0f172a;
+    color: white;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  .card {
+    background: #1e293b;
+    padding: 15px;
+    border-radius: 12px;
+    margin: 10px 0;
+  }
+
+  input, select {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+  }
+
+  button {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #3b82f6;
+    color: white;
+  }
+
+  .flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .expense {
+    display: flex;
+    justify-content: space-between;
+    background: #334155;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 5px 0;
+  }
+
+  .danger {
+    color: #ef4444;
+  }
+
+  canvas {
+    background: white;
+    border-radius: 10px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>💰 Ultimate Expense Tracker</h1>
+
+<div class="card">
+  <input id="desc" placeholder="Description">
+  <input id="amount" type="number" placeholder="Amount">
+  <select id="category">
+    <option>Food</option>
+    <option>Transport</option>
+    <option>Shopping</option>
+    <option>Entertainment</option>
+    <option>Other</option>
+  </select>
+  <button onclick="addExpense()">Add</button>
+</div>
+
+<div class="card">
+  🎯 Monthly Budget: ₹
+  <input id="budget" type="number">
+  <button onclick="setBudget()">Set</button>
+  <p id="budgetStatus"></p>
+</div>
+
+<div class="card">
+  🔍 Search: <input id="search" oninput="render()" placeholder="Search...">
+</div>
+
+<div class="card">
+  <h3>📊 Summary</h3>
+  <p id="total"></p>
+  <p id="warning"></p>
+</div>
+
+<div class="card">
+  <h3>💡 Smart Suggestions</h3>
+  <p id="tips"></p>
+</div>
+
+<div class="card">
+  <h3>📅 Expenses</h3>
+  <div id="list"></div>
+</div>
+
+<div class="card">
+  <button onclick="exportCSV()">📤 Export CSV</button>
+</div>
+
+<div class="card">
+  <canvas id="pieChart"></canvas>
+</div>
+
+<div class="card">
+  <canvas id="lineChart"></canvas>
+</div>
+
+</div>
+
+<script>
+let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+let budget = localStorage.getItem("budget") || 0;
+
+function addExpense() {
+  const desc = descInput.value;
+  const amount = +amountInput.value;
+  const category = categoryInput.value;
+
+  if (!desc || !amount) return alert("Fill all fields");
+
+  expenses.push({
+    desc,
+    amount,
+    category,
+    date: new Date().toISOString()
+  });
+
+  save();
+}
+
+function deleteExpense(i) {
+  expenses.splice(i, 1);
+  save();
+}
+
+function setBudget() {
+  budget = +document.getElementById("budget").value;
+  localStorage.setItem("budget", budget);
+  render();
+}
+
+function save() {
+  localStorage.setItem("expenses", JSON.stringify(expenses));
+  render();
+}
+
+function render() {
+  const list = document.getElementById("list");
+  const search = document.getElementById("search").value.toLowerCase();
+
+  list.innerHTML = "";
+
+  let total = 0;
+  let categories = {};
+  let daily = {};
+
+  expenses.forEach((e, i) => {
+    if (!e.desc.toLowerCase().includes(search)) return;
+
+    total += e.amount;
+
+    categories[e.category] = (categories[e.category] || 0) + e.amount;
+
+    let day = e.date.slice(0,10);
+    daily[day] = (daily[day] || 0) + e.amount;
+
+    list.innerHTML += `
+      <div class="expense">
+        ${e.desc} - ₹${e.amount} (${e.category})
+        <button onclick="deleteExpense(${i})">❌</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("total").innerText = "Total: ₹" + total;
+
+  if (total > budget && budget > 0) {
+    document.getElementById("warning").innerHTML =
+      "⚠️ Over budget!";
+  } else {
+    document.getElementById("warning").innerHTML = "";
+  }
+
+  document.getElementById("budgetStatus").innerText =
+    "Budget: ₹" + budget;
+
+  generateTips(categories);
+  drawCharts(categories, daily);
+}
+
+function generateTips(cat) {
+  let tips = "";
+
+  if ((cat.Food || 0) > 2500)
+    tips += "🍔 Reduce eating out.\n";
+
+  if ((cat.Shopping || 0) > 2000)
+    tips += "🛍️ Avoid impulse buying.\n";
+
+  if ((cat.Entertainment || 0) > 1500)
+    tips += "🎬 Limit subscriptions.\n";
+
+  if (!tips) tips = "✅ You're doing great!";
+
+  document.getElementById("tips").innerText = tips;
+}
+
+let pieChart, lineChart;
+
+function drawCharts(cat, daily) {
+  const ctx1 = document.getElementById("pieChart");
+  const ctx2 = document.getElementById("lineChart");
+
+  if (pieChart) pieChart.destroy();
+  if (lineChart) lineChart.destroy();
+
+  pieChart = new Chart(ctx1, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(cat),
+      datasets: [{
+        data: Object.values(cat)
+      }]
+    }
+  });
+
+  lineChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: Object.keys(daily),
+      datasets: [{
+        label: "Daily Spending",
+        data: Object.values(daily)
+      }]
+    }
+  });
+}
+
+function exportCSV() {
+  let csv = "Desc,Amount,Category,Date\n";
+  expenses.forEach(e => {
+    csv += `${e.desc},${e.amount},${e.category},${e.date}\n`;
+  });
+
+  const blob = new Blob([csv]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "expenses.csv";
+  a.click();
+}
+
+const descInput = document.getElementById("desc");
+const amountInput = document.getElementById("amount");
+const categoryInput = document.getElementById("category");
+
+render();
+</script>
+
+</body>
+</html>
