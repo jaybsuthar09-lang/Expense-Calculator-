@@ -47,12 +47,6 @@
     color: white;
   }
 
-  .flex {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
   .expense {
     display: flex;
     justify-content: space-between;
@@ -62,8 +56,9 @@
     margin: 5px 0;
   }
 
-  .danger {
+  .error {
     color: #ef4444;
+    font-size: 14px;
   }
 
   canvas {
@@ -90,6 +85,9 @@
     <option>Other</option>
   </select>
   <button onclick="addExpense()">Add</button>
+
+  <!-- ✅ Clean error message -->
+  <p id="inputError" class="error"></p>
 </div>
 
 <div class="card">
@@ -97,10 +95,6 @@
   <input id="budget" type="number">
   <button onclick="setBudget()">Set</button>
   <p id="budgetStatus"></p>
-</div>
-
-<div class="card">
-  🔍 Search: <input id="search" oninput="render()" placeholder="Search...">
 </div>
 
 <div class="card">
@@ -142,7 +136,13 @@ function addExpense() {
   const amount = +amountInput.value;
   const category = categoryInput.value;
 
-  if (!desc || !amount) return alert("Fill all fields");
+  // ✅ Fixed validation (no popup)
+  if (!desc || !amount) {
+    document.getElementById("inputError").innerText = "⚠️ Please fill all fields";
+    return;
+  } else {
+    document.getElementById("inputError").innerText = "";
+  }
 
   expenses.push({
     desc,
@@ -150,6 +150,10 @@ function addExpense() {
     category,
     date: new Date().toISOString()
   });
+
+  // ✅ Clear inputs after adding
+  descInput.value = "";
+  amountInput.value = "";
 
   save();
 }
@@ -172,7 +176,6 @@ function save() {
 
 function render() {
   const list = document.getElementById("list");
-  const search = document.getElementById("search").value.toLowerCase();
 
   list.innerHTML = "";
 
@@ -181,8 +184,6 @@ function render() {
   let daily = {};
 
   expenses.forEach((e, i) => {
-    if (!e.desc.toLowerCase().includes(search)) return;
-
     total += e.amount;
 
     categories[e.category] = (categories[e.category] || 0) + e.amount;
@@ -201,14 +202,12 @@ function render() {
   document.getElementById("total").innerText = "Total: ₹" + total;
 
   if (total > budget && budget > 0) {
-    document.getElementById("warning").innerHTML =
-      "⚠️ Over budget!";
+    document.getElementById("warning").innerText = "⚠️ Over budget!";
   } else {
-    document.getElementById("warning").innerHTML = "";
+    document.getElementById("warning").innerText = "";
   }
 
-  document.getElementById("budgetStatus").innerText =
-    "Budget: ₹" + budget;
+  document.getElementById("budgetStatus").innerText = "Budget: ₹" + budget;
 
   generateTips(categories);
   drawCharts(categories, daily);
